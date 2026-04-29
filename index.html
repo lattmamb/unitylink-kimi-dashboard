@@ -1,0 +1,1537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent-Zero Substrate | Knowledge Operating System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js"></script>
+    <style>
+        :root {
+            /* Agent-Zero Core Palette - Derived from terminal/CLI aesthetic */
+            --az-bg-primary: #0d0d0d;
+            --az-bg-secondary: #141414;
+            --az-bg-tertiary: #1a1a1a;
+            --az-bg-elevated: #222222;
+            --az-bg-hover: #2a2a2a;
+            --az-bg-active: #333333;
+            
+            /* Agent-Zero Semantic Colors */
+            --az-accent: #00d4aa;
+            --az-accent-dim: rgba(0, 212, 170, 0.1);
+            --az-info: #3b82f6;
+            --az-info-dim: rgba(59, 130, 246, 0.1);
+            --az-warn: #f59e0b;
+            --az-warn-dim: rgba(245, 158, 11, 0.1);
+            --az-error: #ef4444;
+            --az-error-dim: rgba(239, 68, 68, 0.1);
+            --az-purple: #a855f7;
+            --az-purple-dim: rgba(168, 85, 247, 0.1);
+            
+            /* Text */
+            --az-text-primary: #fafafa;
+            --az-text-secondary: #a3a3a3;
+            --az-text-tertiary: #737373;
+            --az-text-muted: #525252;
+            
+            /* Dimensions */
+            --header-height: 48px;
+            --sidebar-width: 280px;
+            --panel-width: 400px;
+            --terminal-height: 200px;
+            
+            /* Typography */
+            --font-mono: 'JetBrains Mono', monospace;
+            --font-sans: 'Inter', system-ui, sans-serif;
+            
+            /* Transitions */
+            --transition-fast: 0.1s ease;
+            --transition-base: 0.2s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+            font-family: var(--font-sans);
+            background: var(--az-bg-primary);
+            color: var(--az-text-primary);
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--az-bg-secondary);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--az-bg-elevated);
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--az-bg-hover);
+        }
+
+        /* ============================================
+           AGENT-ZERO SUBSTRATE ARCHITECTURE
+           Every component maps to an executable primitive
+        ============================================ */
+
+        .substrate-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        /* ============================================
+           PRIMITIVE: System Header
+           Maps to: agent configuration, session state
+        ============================================ */
+        .system-header {
+            height: var(--header-height);
+            background: var(--az-bg-secondary);
+            border-bottom: 1px solid var(--az-bg-tertiary);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            flex-shrink: 0;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .system-brand {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: var(--font-mono);
+            font-weight: 600;
+            color: var(--az-accent);
+            text-decoration: none;
+        }
+
+        .system-brand::before {
+            content: '⟩';
+            color: var(--az-accent);
+        }
+
+        .session-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            background: var(--az-accent-dim);
+            border-radius: 4px;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--az-accent);
+        }
+
+        .session-indicator::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            background: var(--az-accent);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .header-center {
+            flex: 1;
+            max-width: 600px;
+            margin: 0 24px;
+        }
+
+        .omnibox {
+            position: relative;
+            width: 100%;
+        }
+
+        .omnibox-input {
+            width: 100%;
+            padding: 8px 12px 8px 32px;
+            background: var(--az-bg-tertiary);
+            border: 1px solid transparent;
+            border-radius: 6px;
+            color: var(--az-text-primary);
+            font-family: var(--font-mono);
+            font-size: 12px;
+            transition: var(--transition-base);
+        }
+
+        .omnibox-input:focus {
+            outline: none;
+            border-color: var(--az-accent);
+            background: var(--az-bg-elevated);
+        }
+
+        .omnibox-input::placeholder {
+            color: var(--az-text-tertiary);
+        }
+
+        .omnibox-icon {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--az-text-tertiary);
+            font-size: 11px;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .header-btn {
+            padding: 6px 10px;
+            background: transparent;
+            border: none;
+            border-radius: 4px;
+            color: var(--az-text-secondary);
+            font-family: var(--font-mono);
+            font-size: 11px;
+            cursor: pointer;
+            transition: var(--transition-fast);
+        }
+
+        .header-btn:hover {
+            background: var(--az-bg-tertiary);
+            color: var(--az-text-primary);
+        }
+
+        .header-btn.active {
+            background: var(--az-accent-dim);
+            color: var(--az-accent);
+        }
+
+        /* ============================================
+           PRIMITIVE: Main Workspace
+           Maps to: agent execution environment
+        ============================================ */
+        .workspace {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* ============================================
+           PRIMITIVE: Context Panel (Left)
+           Maps to: agent memory, knowledge base
+        ============================================ */
+        .context-panel {
+            width: var(--sidebar-width);
+            background: var(--az-bg-secondary);
+            border-right: 1px solid var(--az-bg-tertiary);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--az-bg-tertiary);
+        }
+
+        .panel-title {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--az-text-tertiary);
+        }
+
+        .panel-actions {
+            display: flex;
+            gap: 4px;
+        }
+
+        .panel-action {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: none;
+            border-radius: 3px;
+            color: var(--az-text-tertiary);
+            font-size: 10px;
+            cursor: pointer;
+            transition: var(--transition-fast);
+        }
+
+        .panel-action:hover {
+            background: var(--az-bg-elevated);
+            color: var(--az-text-primary);
+        }
+
+        .memory-section {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .memory-category {
+            border-bottom: 1px solid var(--az-bg-tertiary);
+        }
+
+        .memory-category-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            cursor: pointer;
+            transition: var(--transition-fast);
+        }
+
+        .memory-category-header:hover {
+            background: var(--az-bg-tertiary);
+        }
+
+        .memory-category-header.collapsed .category-chevron {
+            transform: rotate(-90deg);
+        }
+
+        .category-chevron {
+            color: var(--az-text-tertiary);
+            font-size: 10px;
+            transition: var(--transition-fast);
+        }
+
+        .category-icon {
+            color: var(--az-accent);
+            font-size: 11px;
+        }
+
+        .category-name {
+            flex: 1;
+            font-family: var(--font-mono);
+            font-size: 12px;
+            color: var(--az-text-secondary);
+        }
+
+        .category-count {
+            padding: 2px 6px;
+            background: var(--az-bg-elevated);
+            border-radius: 3px;
+            font-family: var(--font-mono);
+            font-size: 10px;
+            color: var(--az-text-tertiary);
+        }
+
+        .memory-items {
+            padding: 4px 0;
+        }
+
+        .memory-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px 8px 40px;
+            cursor: pointer;
+            transition: var(--transition-fast);
+        }
+
+        .memory-item:hover {
+            background: var(--az-bg-tertiary);
+        }
+
+        .memory-item.active {
+            background: var(--az-accent-dim);
+        }
+
+        .memory-item.active .item-name {
+            color: var(--az-accent);
+        }
+
+        .item-icon {
+            color: var(--az-text-tertiary);
+            font-size: 11px;
+        }
+
+        .item-name {
+            flex: 1;
+            font-family: var(--font-mono);
+            font-size: 12px;
+            color: var(--az-text-secondary);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .item-meta {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            color: var(--az-text-muted);
+        }
+
+        /* ============================================
+           PRIMITIVE: Execution Canvas (Center)
+           Maps to: agent tool execution, output
+        ============================================ */
+        .execution-canvas {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--az-bg-primary);
+            overflow: hidden;
+        }
+
+        .canvas-tabs {
+            display: flex;
+            background: var(--az-bg-secondary);
+            border-bottom: 1px solid var(--az-bg-tertiary);
+            overflow-x: auto;
+        }
+
+        .canvas-tab {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid transparent;
+            color: var(--az-text-tertiary);
+            font-family: var(--font-mono);
+            font-size: 12px;
+            cursor: pointer;
+            transition: var(--transition-fast);
+            white-space: nowrap;
+        }
+
+        .canvas-tab:hover {
+            background: var(--az-bg-tertiary);
+            color: var(--az-text-secondary);
+        }
+
+        .canvas-tab.active {
+            background: var(--az-bg-tertiary);
+            border-bottom-color: var(--az-accent);
+            color: var(--az-text-primary);
+        }
+
+        .canvas-tab-close {
+            width: 14px;
+            height: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: none;
+            border-radius: 2px;
+            color: var(--az-text-muted);
+            font-size: 9px;
+            opacity: 0;
+            cursor: pointer;
+            transition: var(--transition-fast);
+        }
+
+        .canvas-tab:hover .canvas-tab-close {
+            opacity: 1;
+        }
+
+        .canvas-tab-close:hover {
+            background: var(--az-error);
+            color: white;
+        }
+
+        .canvas-content {
+            flex: 1;
+            overflow: auto;
+            padding: 24px;
+        }
+
+        .empty-canvas {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--az-text-tertiary);
+        }
+
+        .empty-canvas-icon {
+            width: 64px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--az-bg-secondary);
+            border-radius: 12px;
+            margin-bottom: 16px;
+            font-size: 24px;
+            color: var(--az-accent);
+        }
+
+        .empty-canvas h3 {
+            font-family: var(--font-mono);
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--az-text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .empty-canvas p {
+            font-size: 12px;
+            color: var(--az-text-tertiary);
+            max-width: 400px;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .quick-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .quick-action {
+            padding: 8px 16px;
+            background: var(--az-bg-secondary);
+            border: 1px solid var(--az-bg-elevated);
+            border-radius: 6px;
+            color: var(--az-text-secondary);
+            font-family: var(--font-mono);
+            font-size: 11px;
+            cursor: pointer;
+            transition: var(--transition-fast);
+        }
+
+        .quick-action:hover {
+            border-color: var(--az-accent);
+            color: var(--az-accent);
+        }
+
+        /* ============================================
+           PRIMITIVE: Document Viewer
+           Maps to: file content display with annotations
+        ============================================ */
+        .document-viewer {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .document-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-bottom: 16px;
+            margin-bottom: 24px;
+            border-bottom: 1px solid var(--az-bg-tertiary);
+        }
+
+        .document-title {
+            font-family: var(--font-mono);
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--az-text-primary);
+        }
+
+        .document-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .doc-action {
+            padding: 6px 12px;
+            background: var(--az-bg-secondary);
+            border: 1px solid var(--az-bg-elevated);
+            border-radius: 4px;
+            color: var(--az-text-secondary);
+            font-family: var(--font-mono);
+            font-size: 11px;
+            cursor: pointer;
+            transition: var(--transition-fast);
+        }
+
+        .doc-action:hover {
+            border-color: var(--az-accent);
+            color: var(--az-accent);
+        }
+
+        .document-content {
+            font-family: var(--font-sans);
+            font-size: 14px;
+            line-height: 1.8;
+            color: var(--az-text-secondary);
+        }
+
+        .document-content h1 {
+            font-family: var(--font-mono);
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--az-text-primary);
+            margin: 32px 0 16px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--az-bg-tertiary);
+        }
+
+        .document-content h2 {
+            font-family: var(--font-mono);
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--az-text-primary);
+            margin: 24px 0 12px;
+        }
+
+        .document-content h3 {
+            font-family: var(--font-mono);
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--az-text-secondary);
+            margin: 20px 0 10px;
+        }
+
+        .document-content p {
+            margin-bottom: 16px;
+        }
+
+        .document-content code {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            padding: 2px 6px;
+            background: var(--az-bg-secondary);
+            border-radius: 3px;
+            color: var(--az-accent);
+        }
+
+        .document-content pre {
+            padding: 16px;
+            background: var(--az-bg-secondary);
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 16px 0;
+        }
+
+        .document-content pre code {
+            padding: 0;
+            background: transparent;
+        }
+
+        .document-content ul, .document-content ol {
+            margin: 16px 0;
+            padding-left: 24px;
+        }
+
+        .document-content li {
+            margin-bottom: 8px;
+        }
+
+        /* ============================================
+           PRIMITIVE: Agent Panel (Right)
+           Maps to: agent interaction, tool calls
+        ============================================ */
+        .agent-panel {
+            width: var(--panel-width);
+            background: var(--az-bg-secondary);
+            border-left: 1px solid var(--az-bg-tertiary);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .agent-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+        }
+
+        .agent-message {
+            margin-bottom: 16px;
+        }
+
+        .agent-message-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .agent-avatar {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--az-accent-dim);
+            border-radius: 4px;
+            font-family: var(--font-mono);
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--az-accent);
+        }
+
+        .agent-avatar.user {
+            background: var(--az-info-dim);
+            color: var(--az-info);
+        }
+
+        .agent-name {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--az-text-secondary);
+        }
+
+        .agent-time {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            color: var(--az-text-muted);
+        }
+
+        .agent-content {
+            padding-left: 32px;
+            font-size: 13px;
+            line-height: 1.6;
+            color: var(--az-text-secondary);
+        }
+
+        .agent-content p {
+            margin-bottom: 12px;
+        }
+
+        .agent-content p:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Tool Call Display */
+        .tool-call {
+            margin: 12px 0;
+            background: var(--az-bg-tertiary);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .tool-call-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 12px;
+            background: var(--az-bg-elevated);
+            cursor: pointer;
+        }
+
+        .tool-status {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .tool-status.pending {
+            background: var(--az-warn);
+            animation: pulse 1.5s infinite;
+        }
+
+        .tool-status.success {
+            background: var(--az-accent);
+        }
+
+        .tool-status.error {
+            background: var(--az-error);
+        }
+
+        .tool-name {
+            flex: 1;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--az-text-primary);
+        }
+
+        .tool-duration {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            color: var(--az-text-muted);
+        }
+
+        .tool-call-body {
+            padding: 12px;
+            font-family: var(--font-mono);
+            font-size: 11px;
+        }
+
+        .tool-section {
+            margin-bottom: 12px;
+        }
+
+        .tool-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .tool-section-label {
+            font-size: 10px;
+            color: var(--az-text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 6px;
+        }
+
+        .tool-code {
+            padding: 10px;
+            background: var(--az-bg-primary);
+            border-radius: 4px;
+            color: var(--az-text-secondary);
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        /* Agent Input */
+        .agent-input-area {
+            padding: 16px;
+            border-top: 1px solid var(--az-bg-tertiary);
+        }
+
+        .agent-input-container {
+            display: flex;
+            gap: 8px;
+            padding: 10px 12px;
+            background: var(--az-bg-tertiary);
+            border: 1px solid var(--az-bg-elevated);
+            border-radius: 8px;
+            transition: var(--transition-base);
+        }
+
+        .agent-input-container:focus-within {
+            border-color: var(--az-accent);
+        }
+
+        .agent-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--az-text-primary);
+            font-family: var(--font-mono);
+            font-size: 12px;
+            resize: none;
+            min-height: 20px;
+            max-height: 120px;
+        }
+
+        .agent-input:focus {
+            outline: none;
+        }
+
+        .agent-input::placeholder {
+            color: var(--az-text-tertiary);
+        }
+
+        .agent-input-actions {
+            display: flex;
+            gap: 4px;
+        }
+
+        .input-action {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: none;
+            border-radius: 4px;
+            color: var(--az-text-tertiary);
+            font-size: 11px;
+            cursor: pointer;
+            transition: var(--transition-fast);
+        }
+
+        .input-action:hover {
+            background: var(--az-bg-elevated);
+            color: var(--az-text-primary);
+        }
+
+        .input-action.send {
+            background: var(--az-accent);
+            color: var(--az-bg-primary);
+        }
+
+        .input-action.send:hover {
+            background: var(--az-text-primary);
+        }
+
+        .input-hints {
+            display: flex;
+            gap: 6px;
+            margin-top: 10px;
+            padding-left: 4px;
+            overflow-x: auto;
+        }
+
+        .input-hint {
+            padding: 4px 10px;
+            background: var(--az-bg-tertiary);
+            border: none;
+            border-radius: 4px;
+            color: var(--az-text-tertiary);
+            font-family: var(--font-mono);
+            font-size: 10px;
+            cursor: pointer;
+            transition: var(--transition-fast);
+            white-space: nowrap;
+        }
+
+        .input-hint:hover {
+            background: var(--az-bg-elevated);
+            color: var(--az-text-secondary);
+        }
+
+        /* ============================================
+           PRIMITIVE: Terminal Panel (Bottom)
+           Maps to: system logs, tool outputs
+        ============================================ */
+        .terminal-panel {
+            height: var(--terminal-height);
+            background: var(--az-bg-primary);
+            border-top: 1px solid var(--az-bg-tertiary);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .terminal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 16px;
+            background: var(--az-bg-secondary);
+            border-bottom: 1px solid var(--az-bg-tertiary);
+        }
+
+        .terminal-tabs {
+            display: flex;
+            gap: 4px;
+        }
+
+        .terminal-tab {
+            padding: 4px 12px;
+            background: transparent;
+            border: none;
+            border-radius: 4px;
+            color: var(--az-text-tertiary);
+            font-family: var(--font-mono);
+            font-size: 11px;
+            cursor: pointer;
+            transition: var(--transition-fast);
+        }
+
+        .terminal-tab:hover {
+            background: var(--az-bg-tertiary);
+            color: var(--az-text-secondary);
+        }
+
+        .terminal-tab.active {
+            background: var(--az-bg-tertiary);
+            color: var(--az-accent);
+        }
+
+        .terminal-actions {
+            display: flex;
+            gap: 4px;
+        }
+
+        .terminal-action {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: none;
+            border-radius: 3px;
+            color: var(--az-text-tertiary);
+            font-size: 10px;
+            cursor: pointer;
+            transition: var(--transition-fast);
+        }
+
+        .terminal-action:hover {
+            background: var(--az-bg-tertiary);
+            color: var(--az-text-primary);
+        }
+
+        .terminal-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px 16px;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            line-height: 1.6;
+        }
+
+        .log-entry {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 4px;
+        }
+
+        .log-timestamp {
+            color: var(--az-text-muted);
+            flex-shrink: 0;
+        }
+
+        .log-level {
+            width: 40px;
+            flex-shrink: 0;
+        }
+
+        .log-level.info {
+            color: var(--az-info);
+        }
+
+        .log-level.success {
+            color: var(--az-accent);
+        }
+
+        .log-level.warn {
+            color: var(--az-warn);
+        }
+
+        .log-level.error {
+            color: var(--az-error);
+        }
+
+        .log-message {
+            color: var(--az-text-secondary);
+        }
+
+        .log-message code {
+            padding: 1px 4px;
+            background: var(--az-bg-secondary);
+            border-radius: 2px;
+            color: var(--az-accent);
+        }
+
+        /* ============================================
+           PRIMITIVE: Knowledge Graph Overlay
+           Maps to: memory visualization, relationships
+        ============================================ */
+        .graph-overlay {
+            position: fixed;
+            top: var(--header-height);
+            left: var(--sidebar-width);
+            right: var(--panel-width);
+            bottom: var(--terminal-height);
+            background: var(--az-bg-primary);
+            z-index: 100;
+            display: none;
+        }
+
+        .graph-overlay.active {
+            display: block;
+        }
+
+        .graph-header {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            right: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 10;
+        }
+
+        .graph-title {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--az-text-primary);
+        }
+
+        .graph-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .graph-control {
+            padding: 6px 12px;
+            background: var(--az-bg-secondary);
+            border: 1px solid var(--az-bg-elevated);
+            border-radius: 4px;
+            color: var(--az-text-secondary);
+            font-family: var(--font-mono);
+            font-size: 11px;
+            cursor: pointer;
+            transition: var(--transition-fast);
+        }
+
+        .graph-control:hover {
+            border-color: var(--az-accent);
+            color: var(--az-accent);
+        }
+
+        .graph-control.active {
+            background: var(--az-accent-dim);
+            border-color: var(--az-accent);
+            color: var(--az-accent);
+        }
+
+        #knowledgeGraph {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* ============================================
+           PRIMITIVE: Modals & Overlays
+        ============================================ */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: var(--transition-base);
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            background: var(--az-bg-secondary);
+            border: 1px solid var(--az-bg-elevated);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px;
+            border-bottom: 1px solid var(--az-bg-tertiary);
+        }
+
+        .modal-title {
+            font-family: var(--font-mono);
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--az-text-primary);
+        }
+
+        .modal-close {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: none;
+            border-radius: 4px;
+            color: var(--az-text-tertiary);
+            font-size: 12px;
+            cursor: pointer;
+            transition: var(--transition-fast);
+        }
+
+        .modal-close:hover {
+            background: var(--az-error);
+            color: white;
+        }
+
+        .modal-body {
+            padding: 24px;
+            overflow-y: auto;
+        }
+
+        /* Upload Dropzone */
+        .dropzone {
+            padding: 48px 32px;
+            border: 2px dashed var(--az-bg-elevated);
+            border-radius: 8px;
+            text-align: center;
+            transition: var(--transition-base);
+        }
+
+        .dropzone:hover, .dropzone.dragover {
+            border-color: var(--az-accent);
+            background: var(--az-accent-dim);
+        }
+
+        .dropzone-icon {
+            width: 64px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--az-bg-tertiary);
+            border-radius: 12px;
+            margin: 0 auto 16px;
+            font-size: 24px;
+            color: var(--az-accent);
+        }
+
+        .dropzone h4 {
+            font-family: var(--font-mono);
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--az-text-primary);
+            margin-bottom: 8px;
+        }
+
+        .dropzone p {
+            font-size: 12px;
+            color: var(--az-text-tertiary);
+            margin-bottom: 16px;
+        }
+
+        .dropzone-btn {
+            padding: 10px 20px;
+            background: var(--az-accent);
+            border: none;
+            border-radius: 6px;
+            color: var(--az-bg-primary);
+            font-family: var(--font-mono);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition-fast);
+        }
+
+        .dropzone-btn:hover {
+            background: var(--az-text-primary);
+        }
+
+        .format-list {
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid var(--az-bg-tertiary);
+        }
+
+        .format-list h5 {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--az-text-tertiary);
+            margin-bottom: 12px;
+        }
+
+        .format-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .format-tag {
+            padding: 4px 8px;
+            background: var(--az-bg-tertiary);
+            border-radius: 3px;
+            color: var(--az-text-tertiary);
+            font-family: var(--font-mono);
+            font-size: 10px;
+        }
+
+        /* ============================================
+           PRIMITIVE: Toast Notifications
+        ============================================ */
+        .toast-container {
+            position: fixed;
+            bottom: calc(var(--terminal-height) + 16px);
+            right: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 2000;
+        }
+
+        .toast {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 14px 16px;
+            background: var(--az-bg-secondary);
+            border: 1px solid var(--az-bg-elevated);
+            border-radius: 6px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+            animation: slideIn 0.3s ease;
+            max-width: 400px;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(100%);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .toast-icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            font-size: 10px;
+            flex-shrink: 0;
+        }
+
+        .toast-icon.success {
+            background: var(--az-accent-dim);
+            color: var(--az-accent);
+        }
+
+        .toast-icon.error {
+            background: var(--az-error-dim);
+            color: var(--az-error);
+        }
+
+        .toast-icon.info {
+            background: var(--az-info-dim);
+            color: var(--az-info);
+        }
+
+        .toast-content {
+            flex: 1;
+        }
+
+        .toast-title {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--az-text-primary);
+            margin-bottom: 2px;
+        }
+
+        .toast-message {
+            font-size: 11px;
+            color: var(--az-text-secondary);
+        }
+
+        /* ============================================
+           Responsive
+        ============================================ */
+        @media (max-width: 1200px) {
+            .agent-panel {
+                position: fixed;
+                right: -100%;
+                top: var(--header-height);
+                bottom: var(--terminal-height);
+                transition: right 0.3s ease;
+            }
+            .agent-panel.open {
+                right: 0;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .context-panel {
+                position: fixed;
+                left: -100%;
+                top: var(--header-height);
+                bottom: var(--terminal-height);
+                transition: left 0.3s ease;
+            }
+            .context-panel.open {
+                left: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="substrate-container">
+        <!-- System Header - Maps to: agent configuration, session state -->
+        <header class="system-header">
+            <div class="header-left">
+                <a href="#" class="system-brand">agent-zero</a>
+                <div class="session-indicator">
+                    <span>session_active</span>
+                </div>
+            </div>
+            <div class="header-center">
+                <div class="omnibox">
+                    <i class="fas fa-search omnibox-icon">⌕</i>
+                    <input type="text" class="omnibox-input" placeholder="Execute command, search memory, or ask anything..." id="omnibox">
+                </div>
+            </div>
+            <div class="header-right">
+                <button class="header-btn" onclick="toggleGraph()">graph</button>
+                <button class="header-btn" onclick="openUpload()">upload</button>
+                <button class="header-btn" onclick="toggleAgentPanel()">agent</button>
+                <button class="header-btn">settings</button>
+            </div>
+        </header>
+
+        <!-- Main Workspace - Maps to: agent execution environment -->
+        <div class="workspace">
+            <!-- Context Panel - Maps to: agent memory, knowledge base -->
+            <aside class="context-panel" id="contextPanel">
+                <div class="panel-header">
+                    <span class="panel-title">Memory</span>
+                    <div class="panel-actions">
+                        <button class="panel-action" onclick="refreshMemory()">↻</button>
+                        <button class="panel-action" onclick="collapseAll()">−</button>
+                    </div>
+                </div>
+                <div class="memory-section" id="memorySection">
+                    <!-- Memory categories populated by JavaScript -->
+                </div>
+            </aside>
+
+            <!-- Execution Canvas - Maps to: agent tool execution, output -->
+            <main class="execution-canvas">
+                <div class="canvas-tabs" id="canvasTabs">
+                    <!-- Tabs populated by JavaScript -->
+                </div>
+                <div class="canvas-content" id="canvasContent">
+                    <div class="empty-canvas">
+                        <div class="empty-canvas-icon">◈</div>
+                        <h3>Agent-Zero Substrate</h3>
+                        <p>Every component maps to an executable primitive. Upload documents, execute tools, or ask the agent to transform your knowledge.</p>
+                        <div class="quick-actions">
+                            <button class="quick-action" onclick="openUpload()">Upload documents</button>
+                            <button class="quick-action" onclick="executeTool('analyze')">Analyze corpus</button>
+                            <button class="quick-action" onclick="executeTool('synthesize')">Synthesize insights</button>
+                            <button class="quick-action" onclick="toggleGraph()">View knowledge graph</button>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <!-- Agent Panel - Maps to: agent interaction, tool calls -->
+            <aside class="agent-panel" id="agentPanel">
+                <div class="panel-header">
+                    <span class="panel-title">Agent</span>
+                    <div class="panel-actions">
+                        <button class="panel-action" onclick="clearAgentChat()">⌫</button>
+                    </div>
+                </div>
+                <div class="agent-messages" id="agentMessages">
+                    <!-- Messages populated by JavaScript -->
+                </div>
+                <div class="agent-input-area">
+                    <div class="agent-input-container">
+                        <textarea class="agent-input" placeholder="Message agent or execute command..." id="agentInput" rows="1"></textarea>
+                        <div class="agent-input-actions">
+                            <button class="input-action" title="Attach file">📎</button>
+                            <button class="input-action send" onclick="sendAgentMessage()" title="Send">➤</button>
+                        </div>
+                    </div>
+                    <div class="input-hints">
+                        <button class="input-hint" onclick="setInput('/analyze')">/analyze</button>
+                        <button class="input-hint" onclick="setInput('/search')">/search</button>
+                        <button class="input-hint" onclick="setInput('/create')">/create</button>
+                        <button class="input-hint" onclick="setInput('/merge')">/merge</button>
+                    </div>
+                </div>
+            </aside>
+        </div>
+
+        <!-- Terminal Panel - Maps to: system logs, tool outputs -->
+        <div class="terminal-panel">
+            <div class="terminal-header">
+                <div class="terminal-tabs">
+                    <button class="terminal-tab active">logs</button>
+                    <button class="terminal-tab">tools</button>
+                    <button class="terminal-tab">output</button>
+                </div>
+                <div class="terminal-actions">
+                    <button class="terminal-action" onclick="clearTerminal()">⌫</button>
+                    <button class="terminal-action" onclick="toggleTerminal()">−</button>
+                </div>
+            </div>
+            <div class="terminal-content" id="terminalContent">
+                <!-- Logs populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Knowledge Graph Overlay -->
+    <div class="graph-overlay" id="graphOverlay">
+        <div class="graph-header">
+            <span class="graph-title">Knowledge Graph</span>
+            <div class="graph-controls">
+                <button class="graph-control active">all</button>
+                <button class="graph-control">documents</button>
+                <button class="graph-control">entities</button>
+                <button class="graph-control" onclick="toggleGraph()">✕</button>
+            </div>
+        </div>
+        <div id="knowledgeGraph"></div>
+    </div>
+
+    <!-- Upload Modal -->
+    <div class="modal-overlay" id="uploadModal">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">Ingest Documents</span>
+                <button class="modal-close" onclick="closeUpload()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="dropzone" id="dropzone">
+                    <div class="dropzone-icon">☁</div>
+                    <h4>Drop files to ingest</h4>
+                    <p>or click to browse from your system</p>
+                    <button class="dropzone-btn">Select Files</button>
+                    <input type="file" id="fileInput" multiple style="display:none" accept="*/*">
+                </div>
+                <div class="format-list">
+                    <h5>Supported Formats</h5>
+                    <div class="format-tags">
+                        <span class="format-tag">.pdf</span>
+                        <span class="format-tag">.md</span>
+                        <span class="format-tag">.txt</span>
+                        <span class="format-tag">.json</span>
+                        <span class="format-tag">.csv</span>
+                        <span class="format-tag">.py</span>
+                        <span class="format-tag">.js</span>
+                        <span class="format-tag">.ts</span>
+                        <span class="format-tag">.html</span>
+                        <span class="format-tag">.sql</span>
+                        <span class="format-tag">.zip</span>
+                        <span class="format-tag">+more</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="substrate.js"></script>
+</body>
+</html>

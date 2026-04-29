@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UnityLink Dashboard - Fleet Management & Analytics</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #00e0ff 0%, #35f2db 100%);
+            --secondary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --success-gradient: linear-gradient(135deg, #2ed573 0%, #a4de6c 100%);
+            --warning-gradient: linear-gradient(135deg, #ffa502 0%, #ffc048 100%);
+            --danger-gradient: linear-gradient(135deg, #ff4757 0%, #ff6b7a 100%);
+            --dark-bg: #0B0B0F;
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --sidebar-bg: rgba(11, 11, 15, 0.95);
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.7);
+            --text-muted: rgba(255, 255, 255, 0.5);
+            --accent-blue: #00e0ff;
+            --accent-green: #35f2db;
+            --success: #2ed573;
+            --warning: #ffa502;
+            --danger: #ff4757;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--dark-bg);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .dashboard-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: var(--sidebar-bg);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid var(--glass-border);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+            z-index: 1000;
+        }
+
+        .sidebar-header {
+            padding: 2rem 1.5rem;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .logo {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.3rem;
+            font-weight: 700;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .admin-badge {
+            background: rgba(0, 224, 255, 0.2);
+            color: var(--accent-blue);
+            padding: 0.3rem 0.8rem;
+            border-radius: 15px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border: 1px solid var(--accent-blue);
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            padding: 1rem 0;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 0.8rem 1.5rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: var(--transition);
+            border-left: 3px solid transparent;
+        }
+
+        .nav-item:hover,
+        .nav-item.active {
+            color: var(--accent-blue);
+            background: rgba(0, 224, 255, 0.1);
+            border-left-color: var(--accent-blue);
+        }
+
+        .nav-item i {
+            width: 20px;
+            margin-right: 1rem;
+        }
+
+        .sidebar-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--glass-border);
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            margin-left: 280px;
+            padding: 2rem;
+        }
+
+        .header-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .page-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.8rem;
+            font-weight: 700;
+        }
+
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--primary-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            color: #000;
+        }
+
+        /* Dashboard Grid */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .metric-card {
+            background: var(--card-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 1.5rem;
+            backdrop-filter: blur(20px);
+            transition: var(--transition);
+        }
+
+        .metric-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--accent-blue);
+        }
+
+        .metric-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .metric-title {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .metric-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .metric-icon.success {
+            background: var(--success-gradient);
+            color: #000;
+        }
+
+        .metric-icon.warning {
+            background: var(--warning-gradient);
+            color: #000;
+        }
+
+        .metric-icon.info {
+            background: var(--primary-gradient);
+            color: #000;
+        }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-change {
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .metric-change.positive {
+            color: var(--success);
+        }
+
+        .metric-change.negative {
+            color: var(--danger);
+        }
+
+        /* Chart Container */
+        .chart-container {
+            background: var(--card-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 2rem;
+            backdrop-filter: blur(20px);
+            margin-bottom: 2rem;
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .chart-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .chart-filters {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .filter-btn {
+            background: transparent;
+            border: 1px solid var(--glass-border);
+            color: var(--text-secondary);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.8rem;
+        }
+
+        .filter-btn:hover,
+        .filter-btn.active {
+            background: var(--primary-gradient);
+            color: #000;
+            border-color: transparent;
+        }
+
+        /* Fleet Status */
+        .fleet-status {
+            background: var(--card-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 2rem;
+            backdrop-filter: blur(20px);
+            margin-bottom: 2rem;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .status-item {
+            text-align: center;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 10px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .status-number {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .status-label {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-number.available { color: var(--success); }
+        .status-number.in-use { color: var(--accent-blue); }
+        .status-number.charging { color: var(--warning); }
+        .status-number.maintenance { color: var(--danger); }
+
+        /* Recent Activity */
+        .activity-feed {
+            background: var(--card-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 2rem;
+            backdrop-filter: blur(20px);
+        }
+
+        .activity-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem 0;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+
+        .activity-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+        }
+
+        .activity-icon.ride {
+            background: var(--success-gradient);
+            color: #000;
+        }
+
+        .activity-icon.subscription {
+            background: var(--primary-gradient);
+            color: #000;
+        }
+
+        .activity-icon.payment {
+            background: var(--warning-gradient);
+            color: #000;
+        }
+
+        .activity-content {
+            flex: 1;
+        }
+
+        .activity-title {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .activity-time {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: relative;
+            }
+
+            .main-content {
+                margin-left: 0;
+                padding: 1rem;
+            }
+
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .chart-header {
+                flex-direction: column;
+                gap: 1rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">UNITYLINK</div>
+                <div class="admin-badge">Admin Dashboard</div>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="tracking.html" class="nav-item">
+                    <i class="fas fa-map-marked-alt"></i>
+                    <span>Fleet Tracking</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-users"></i>
+                    <span>User Management</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Analytics</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-credit-card"></i>
+                    <span>Billing</span>
+                </a>
+                <a href="jobs.html" class="nav-item">
+                    <i class="fas fa-briefcase"></i>
+                    <span>Job Platform</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-coins"></i>
+                    <span>ChainLink Portal</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-cog"></i>
+                    <span>Settings</span>
+                </a>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <p>UnityLink Platform v1.0</p>
+                <p>Last updated: <span id="last-update">Just now</span></p>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <div class="header-bar">
+                <h1 class="page-title">Dashboard Overview</h1>
+                <div class="user-menu">
+                    <span>Admin User</span>
+                    <div class="user-avatar">AU</div>
+                </div>
+            </div>
+
+            <!-- Key Metrics -->
+            <div class="dashboard-grid">
+                <div class="metric-card">
+                    <div class="metric-header">
+                        <div class="metric-title">Total Revenue</div>
+                        <div class="metric-icon success">
+                            <i class="fas fa-dollar-sign"></i>
+                        </div>
+                    </div>
+                    <div class="metric-value">$247,890</div>
+                    <div class="metric-change positive">
+                        <i class="fas fa-arrow-up"></i>
+                        <span>+12.5% from last month</span>
+                    </div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-header">
+                        <div class="metric-title">Active Subscribers</div>
+                        <div class="metric-icon info">
+                            <i class="fas fa-users"></i>
+                        </div>
+                    </div>
+                    <div class="metric-value">523</div>
+                    <div class="metric-change positive">
+                        <i class="fas fa-arrow-up"></i>
+                        <span>+8.2% from last month</span>
+                    </div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-header">
+                        <div class="metric-title">Fleet Utilization</div>
+                        <div class="metric-icon warning">
+                            <i class="fas fa-car"></i>
+                        </div>
+                    </div>
+                    <div class="metric-value">87.3%</div>
+                    <div class="metric-change negative">
+                        <i class="fas fa-arrow-down"></i>
+                        <span>-2.1% from last week</span>
+                    </div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-header">
+                        <div class="metric-title">Community Investment</div>
+                        <div class="metric-icon success">
+                            <i class="fas fa-coins"></i>
+                        </div>
+                    </div>
+                    <div class="metric-value">$1.2M</div>
+                    <div class="metric-change positive">
+                        <i class="fas fa-arrow-up"></i>
+                        <span>+15.7% total raised</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fleet Status -->
+            <div class="fleet-status">
+                <div class="chart-header">
+                    <h2 class="chart-title">Fleet Status Overview</h2>
+                    <div class="chart-filters">
+                        <button class="filter-btn active" onclick="updateFleetStatus('all')">All Vehicles</button>
+                        <button class="filter-btn" onclick="updateFleetStatus('available')">Available</button>
+                        <button class="filter-btn" onclick="updateFleetStatus('active')">In Service</button>
+                    </div>
+                </div>
+                <div class="status-grid">
+                    <div class="status-item">
+                        <div class="status-number available">12</div>
+                        <div class="status-label">Available</div>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-number in-use">28</div>
+                        <div class="status-label">In Service</div>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-number charging">8</div>
+                        <div class="status-label">Charging</div>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-number maintenance">2</div>
+                        <div class="status-label">Maintenance</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Revenue Chart -->
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h2 class="chart-title">Revenue Analytics</h2>
+                    <div class="chart-filters">
+                        <button class="filter-btn" onclick="updateChart('7d')">7 Days</button>
+                        <button class="filter-btn active" onclick="updateChart('30d')">30 Days</button>
+                        <button class="filter-btn" onclick="updateChart('90d')">90 Days</button>
+                        <button class="filter-btn" onclick="updateChart('1y')">1 Year</button>
+                    </div>
+                </div>
+                <canvas id="revenueChart" width="400" height="200"></canvas>
+            </div>
+
+            <!-- Usage Analytics -->
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h2 class="chart-title">Vehicle Usage Patterns</h2>
+                    <div class="chart-filters">
+                        <button class="filter-btn active" onclick="updateUsageChart('daily')">Daily</button>
+                        <button class="filter-btn" onclick="updateUsageChart('weekly')">Weekly</button>
+                        <button class="filter-btn" onclick="updateUsageChart('monthly')">Monthly</button>
+                    </div>
+                </div>
+                <canvas id="usageChart" width="400" height="200"></canvas>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="activity-feed">
+                <div class="chart-header">
+                    <h2 class="chart-title">Recent Activity</h2>
+                    <button class="filter-btn" onclick="refreshActivity()">Refresh</button>
+                </div>
+                <div id="activity-list">
+                    <div class="activity-item">
+                        <div class="activity-icon ride">
+                            <i class="fas fa-car"></i>
+                        </div>
+                        <div class="activity-content">
+                            <div class="activity-title">New ride completed</div>
+                            <div class="activity-time">2 minutes ago</div>
+                        </div>
+                    </div>
+                    <div class="activity-item">
+                        <div class="activity-icon subscription">
+                            <i class="fas fa-user-plus"></i>
+                        </div>
+                        <div class="activity-content">
+                            <div class="activity-title">New subscriber registered</div>
+                            <div class="activity-time">5 minutes ago</div>
+                        </div>
+                    </div>
+                    <div class="activity-item">
+                        <div class="activity-icon payment">
+                            <i class="fas fa-credit-card"></i>
+                        </div>
+                        <div class="activity-content">
+                            <div class="activity-title">Payment processed</div>
+                            <div class="activity-time">8 minutes ago</div>
+                        </div>
+                    </div>
+                    <div class="activity-item">
+                        <div class="activity-icon ride">
+                            <i class="fas fa-charging-station"></i>
+                        </div>
+                        <div class="activity-content">
+                            <div class="activity-title">Vehicle charging completed</div>
+                            <div class="activity-time">12 minutes ago</div>
+                        </div>
+                    </div>
+                    <div class="activity-item">
+                        <div class="activity-icon subscription">
+                            <i class="fas fa-coins"></i>
+                        </div>
+                        <div class="activity-content">
+                            <div class="activity-title">ChainLink dividend distributed</div>
+                            <div class="activity-time">15 minutes ago</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Dashboard functionality
+        class DashboardManager {
+            constructor() {
+                this.init();
+            }
+
+            init() {
+                this.initializeCharts();
+                this.startRealTimeUpdates();
+                this.setupAnimations();
+            }
+
+            initializeCharts() {
+                // Revenue Chart
+                const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+                this.revenueChart = new Chart(revenueCtx, {
+                    type: 'line',
+                    data: {
+                        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                        datasets: [{
+                            label: 'Revenue ($)',
+                            data: [12000, 19000, 15000, 25000, 22000, 30000, 28000, 35000, 32000, 38000, 41000, 45000],
+                            borderColor: '#00e0ff',
+                            backgroundColor: 'rgba(0, 224, 255, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: {
+                                    color: 'rgba(255, 255, 255, 0.1)'
+                                },
+                                ticks: {
+                                    color: 'rgba(255, 255, 255, 0.7)'
+                                }
+                            },
+                            y: {
+                                grid: {
+                                    color: 'rgba(255, 255, 255, 0.1)'
+                                },
+                                ticks: {
+                                    color: 'rgba(255, 255, 255, 0.7)',
+                                    callback: function(value) {
+                                        return '$' + value.toLocaleString();
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+
+                // Usage Chart
+                const usageCtx = document.getElementById('usageChart').getContext('2d');
+                this.usageChart = new Chart(usageCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                        datasets: [{
+                            label: 'Rides',
+                            data: [65, 78, 82, 91, 95, 120, 85],
+                            backgroundColor: 'rgba(0, 224, 255, 0.8)',
+                            borderColor: '#00e0ff',
+                            borderWidth: 1
+                        }, {
+                            label: 'Miles Driven',
+                            data: [1200, 1450, 1380, 1620, 1580, 2100, 1480],
+                            backgroundColor: 'rgba(53, 242, 219, 0.8)',
+                            borderColor: '#35f2db',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                labels: {
+                                    color: 'rgba(255, 255, 255, 0.7)'
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: {
+                                    color: 'rgba(255, 255, 255, 0.1)'
+                                },
+                                ticks: {
+                                    color: 'rgba(255, 255, 255, 0.7)'
+                                }
+                            },
+                            y: {
+                                grid: {
+                                    color: 'rgba(255, 255, 255, 0.1)'
+                                },
+                                ticks: {
+                                    color: 'rgba(255, 255, 255, 0.7)'
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            startRealTimeUpdates() {
+                // Simulate real-time data updates
+                setInterval(() => {
+                    this.updateMetrics();
+                    this.updateActivity();
+                }, 30000); // Update every 30 seconds
+
+                // Update timestamp
+                setInterval(() => {
+                    document.getElementById('last-update').textContent = new Date().toLocaleTimeString();
+                }, 1000);
+            }
+
+            updateMetrics() {
+                // Simulate metric updates
+                const metrics = {
+                    revenue: Math.floor(Math.random() * 1000) + 247000,
+                    subscribers: Math.floor(Math.random() * 20) + 515,
+                    utilization: (Math.random() * 10 + 82).toFixed(1),
+                    investment: Math.floor(Math.random() * 50000) + 1200000
+                };
+
+                // Update metric cards with animation
+                anime({
+                    targets: '.metric-value',
+                    scale: [1, 1.05, 1],
+                    duration: 500,
+                    easing: 'easeOutCubic'
+                });
+            }
+
+            updateActivity() {
+                const activities = [
+                    { icon: 'fas fa-car', title: 'Ride completed', type: 'ride' },
+                    { icon: 'fas fa-user-plus', title: 'New subscriber', type: 'subscription' },
+                    { icon: 'fas fa-credit-card', title: 'Payment processed', type: 'payment' },
+                    { icon: 'fas fa-charging-station', title: 'Charging completed', type: 'ride' },
+                    { icon: 'fas fa-coins', title: 'Dividend distributed', type: 'subscription' }
+                ];
+
+                // Add new activity
+                const randomActivity = activities[Math.floor(Math.random() * activities.length)];
+                this.addActivity(randomActivity);
+            }
+
+            addActivity(activity) {
+                const activityList = document.getElementById('activity-list');
+                const newActivity = document.createElement('div');
+                newActivity.className = 'activity-item';
+                newActivity.style.opacity = '0';
+                newActivity.innerHTML = `
+                    <div class="activity-icon ${activity.type}">
+                        <i class="${activity.icon}"></i>
+                    </div>
+                    <div class="activity-content">
+                        <div class="activity-title">${activity.title}</div>
+                        <div class="activity-time">Just now</div>
+                    </div>
+                `;
+
+                activityList.insertBefore(newActivity, activityList.firstChild);
+
+                // Animate in
+                anime({
+                    targets: newActivity,
+                    opacity: [0, 1],
+                    translateX: [-50, 0],
+                    duration: 300,
+                    easing: 'easeOutCubic'
+                });
+
+                // Remove oldest activity if more than 5
+                const activities = activityList.querySelectorAll('.activity-item');
+                if (activities.length > 5) {
+                    activities[activities.length - 1].remove();
+                }
+            }
+
+            setupAnimations() {
+                // Animate metric cards on load
+                anime({
+                    targets: '.metric-card',
+                    opacity: [0, 1],
+                    translateY: [30, 0],
+                    delay: anime.stagger(100),
+                    duration: 600,
+                    easing: 'easeOutCubic'
+                });
+
+                // Animate charts
+                anime({
+                    targets: '.chart-container',
+                    opacity: [0, 1],
+                    translateY: [30, 0],
+                    delay: anime.stagger(200, {start: 400}),
+                    duration: 600,
+                    easing: 'easeOutCubic'
+                });
+            }
+        }
+
+        // Global functions for onclick handlers
+        function updateFleetStatus(status) {
+            // Update active filter button
+            document.querySelectorAll('.fleet-status .filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Update fleet status display
+            console.log('Updating fleet status:', status);
+        }
+
+        function updateChart(period) {
+            // Update active filter button
+            document.querySelectorAll('#revenueChart').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Update chart data
+            console.log('Updating chart period:', period);
+        }
+
+        function updateUsageChart(period) {
+            // Update active filter button
+            document.querySelectorAll('#usageChart').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Update usage chart
+            console.log('Updating usage chart:', period);
+        }
+
+        function refreshActivity() {
+            // Add refresh animation
+            anime({
+                targets: '#activity-list',
+                opacity: [1, 0.5, 1],
+                duration: 500,
+                easing: 'easeOutCubic'
+            });
+            
+            // Add new activity
+            dashboardManager.updateActivity();
+        }
+
+        // Initialize dashboard
+        const dashboardManager = new DashboardManager();
+    </script>
+</body>
+</html>

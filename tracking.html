@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UnityLink - Real-Time Vehicle Tracking System</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #00e0ff 0%, #35f2db 100%);
+            --secondary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --success-gradient: linear-gradient(135deg, #2ed573 0%, #a4de6c 100%);
+            --warning-gradient: linear-gradient(135deg, #ffa502 0%, #ffc048 100%);
+            --danger-gradient: linear-gradient(135deg, #ff4757 0%, #ff6b7a 100%);
+            --dark-bg: #0B0B0F;
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.7);
+            --text-muted: rgba(255, 255, 255, 0.5);
+            --accent-blue: #00e0ff;
+            --accent-green: #35f2db;
+            --success: #2ed573;
+            --warning: #ffa502;
+            --danger: #ff4757;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--dark-bg);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow: hidden;
+        }
+
+        .tracking-container {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 350px;
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid var(--glass-border);
+            display: flex;
+            flex-direction: column;
+            z-index: 1000;
+        }
+
+        .sidebar-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--glass-border);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 800;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .back-button {
+            background: var(--primary-gradient);
+            color: #000;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: var(--transition);
+        }
+
+        .back-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 224, 255, 0.3);
+        }
+
+        /* Search and Filters */
+        .search-section {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .search-box {
+            position: relative;
+            margin-bottom: 1rem;
+        }
+
+        .search-input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            border-radius: 25px;
+            padding: 0.8rem 1rem 0.8rem 3rem;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+
+        .search-input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+        }
+
+        .filter-section {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .filter-btn {
+            background: transparent;
+            border: 1px solid var(--glass-border);
+            color: var(--text-secondary);
+            padding: 0.4rem 0.8rem;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.8rem;
+        }
+
+        .filter-btn:hover,
+        .filter-btn.active {
+            background: var(--primary-gradient);
+            color: #000;
+            border-color: transparent;
+        }
+
+        /* Vehicle List */
+        .vehicle-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+        }
+
+        .vehicle-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--glass-border);
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 0.8rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .vehicle-item:hover,
+        .vehicle-item.selected {
+            border-color: var(--accent-blue);
+            background: rgba(0, 224, 255, 0.1);
+        }
+
+        .vehicle-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .vehicle-id {
+            font-weight: 600;
+            color: var(--accent-blue);
+        }
+
+        .vehicle-status {
+            padding: 0.2rem 0.6rem;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .vehicle-status.available {
+            background: rgba(46, 213, 115, 0.2);
+            color: var(--success);
+        }
+
+        .vehicle-status.in-use {
+            background: rgba(0, 224, 255, 0.2);
+            color: var(--accent-blue);
+        }
+
+        .vehicle-status.charging {
+            background: rgba(255, 165, 2, 0.2);
+            color: var(--warning);
+        }
+
+        .vehicle-status.maintenance {
+            background: rgba(255, 71, 87, 0.2);
+            color: var(--danger);
+        }
+
+        .vehicle-details {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        .vehicle-detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.2rem;
+        }
+
+        /* Map Container */
+        .map-container {
+            flex: 1;
+            position: relative;
+        }
+
+        .map-header {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            right: 1rem;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .map-title {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 25px;
+            padding: 0.8rem 1.5rem;
+            font-weight: 600;
+        }
+
+        .map-controls {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .map-btn {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            color: var(--text-primary);
+            padding: 0.8rem;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .map-btn:hover {
+            background: var(--primary-gradient);
+            color: #000;
+            border-color: transparent;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Vehicle Info Panel */
+        .vehicle-info-panel {
+            position: absolute;
+            bottom: 1rem;
+            left: 1rem;
+            right: 1rem;
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 1.5rem;
+            z-index: 1000;
+            transform: translateY(100%);
+            transition: var(--transition);
+        }
+
+        .vehicle-info-panel.show {
+            transform: translateY(0);
+        }
+
+        .info-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .info-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .close-info {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+        }
+
+        .info-item {
+            text-align: center;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 10px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .info-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: var(--accent-blue);
+        }
+
+        .info-label {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Loading Animation */
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(11, 11, 15, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(0, 224, 255, 0.3);
+            border-top: 3px solid var(--accent-blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .tracking-container {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                height: 300px;
+            }
+
+            .map-header {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .info-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="tracking-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">UNITYLINK</div>
+                <button class="back-button" onclick="window.location.href='index.html'">
+                    <i class="fas fa-arrow-left"></i> Back
+                </button>
+            </div>
+
+            <div class="search-section">
+                <div class="search-box">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" class="search-input" placeholder="Search vehicles..." id="vehicleSearch">
+                </div>
+                
+                <div class="filter-section">
+                    <div style="margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.8rem;">Status Filter:</div>
+                    <div class="filter-group">
+                        <button class="filter-btn active" data-status="all">All</button>
+                        <button class="filter-btn" data-status="available">Available</button>
+                        <button class="filter-btn" data-status="in-use">In Use</button>
+                        <button class="filter-btn" data-status="charging">Charging</button>
+                        <button class="filter-btn" data-status="maintenance">Maintenance</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="vehicle-list" id="vehicleList">
+                <!-- Vehicle items will be populated by JavaScript -->
+            </div>
+        </aside>
+
+        <!-- Map Container -->
+        <div class="map-container">
+            <div class="map-header">
+                <div class="map-title">Real-Time Vehicle Tracking</div>
+                <div class="map-controls">
+                    <button class="map-btn" onclick="centerMap()" title="Center Map">
+                        <i class="fas fa-crosshairs"></i>
+                    </button>
+                    <button class="map-btn" onclick="toggleTraffic()" title="Toggle Traffic">
+                        <i class="fas fa-road"></i>
+                    </button>
+                    <button class="map-btn" onclick="refreshVehicles()" title="Refresh">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div id="map"></div>
+
+            <div class="vehicle-info-panel" id="vehicleInfoPanel">
+                <div class="info-header">
+                    <div class="info-title" id="infoTitle">Vehicle Details</div>
+                    <button class="close-info" onclick="closeVehicleInfo()">&times;</button>
+                </div>
+                <div class="info-grid" id="infoGrid">
+                    <!-- Vehicle info will be populated by JavaScript -->
+                </div>
+            </div>
+
+            <div class="loading-overlay" id="loadingOverlay">
+                <div class="spinner"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class VehicleTrackingSystem {
+            constructor() {
+                this.map = null;
+                this.vehicles = [];
+                this.markers = {};
+                this.selectedVehicle = null;
+                this.trafficLayer = false;
+                
+                this.init();
+            }
+
+            init() {
+                this.initializeMap();
+                this.generateVehicleData();
+                this.setupEventListeners();
+                this.startRealTimeUpdates();
+                this.hideLoading();
+            }
+
+            initializeMap() {
+                // Initialize Leaflet map centered on Illinois
+                this.map = L.map('map').setView([40.1164, -89.2734], 7);
+
+                // Add tile layer
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap contributors'
+                }).addTo(this.map);
+
+                // Add custom styling to map controls
+                const mapElement = document.getElementById('map');
+                mapElement.style.filter = 'hue-rotate(200deg) saturate(0.8)';
+            }
+
+            generateVehicleData() {
+                const vehicleStatuses = ['available', 'in-use', 'charging', 'maintenance'];
+                const vehicleModels = ['Tesla Model Y', 'Tesla Model 3', 'Tesla Model X'];
+                const illinoisLocations = [
+                    [40.1164, -89.2734], // Springfield
+                    [40.1500, -89.3667], // Decatur
+                    [40.1164, -88.2434], // Champaign
+                    [41.8781, -87.6298], // Chicago
+                    [38.6270, -90.1994], // St. Louis area
+                    [41.5868, -90.5151], // Quad Cities
+                    [40.6331, -89.6935], // Peoria
+                    [39.7817, -89.6501], // Lincoln
+                ];
+
+                this.vehicles = [];
+                for (let i = 1; i <= 50; i++) {
+                    const location = illinoisLocations[Math.floor(Math.random() * illinoisLocations.length)];
+                    const vehicle = {
+                        id: `UL-${i.toString().padStart(3, '0')}`,
+                        model: vehicleModels[Math.floor(Math.random() * vehicleModels.length)],
+                        status: vehicleStatuses[Math.floor(Math.random() * vehicleStatuses.length)],
+                        location: {
+                            lat: location[0] + (Math.random() - 0.5) * 0.5,
+                            lng: location[1] + (Math.random() - 0.5) * 0.5
+                        },
+                        battery: Math.floor(Math.random() * 100),
+                        mileage: Math.floor(Math.random() * 50000) + 10000,
+                        speed: Math.floor(Math.random() * 60),
+                        passenger: Math.floor(Math.random() * 4),
+                        destination: this.generateRandomDestination(),
+                        eta: Math.floor(Math.random() * 30) + 5
+                    };
+                    this.vehicles.push(vehicle);
+                }
+
+                this.renderVehicleList();
+                this.addVehicleMarkers();
+            }
+
+            generateRandomDestination() {
+                const destinations = [
+                    'Downtown Springfield',
+                    'University of Illinois',
+                    'Decatur City Center',
+                    'Champaign Mall',
+                    'Peoria Airport',
+                    'Lincoln Hospital',
+                    'Rural Community Center',
+                    'Local Shopping Plaza'
+                ];
+                return destinations[Math.floor(Math.random() * destinations.length)];
+            }
+
+            renderVehicleList() {
+                const vehicleList = document.getElementById('vehicleList');
+                vehicleList.innerHTML = '';
+
+                this.vehicles.forEach(vehicle => {
+                    const vehicleItem = this.createVehicleListItem(vehicle);
+                    vehicleList.appendChild(vehicleItem);
+                });
+            }
+
+            createVehicleListItem(vehicle) {
+                const item = document.createElement('div');
+                item.className = 'vehicle-item';
+                item.dataset.vehicleId = vehicle.id;
+                item.dataset.status = vehicle.status;
+
+                item.innerHTML = `
+                    <div class="vehicle-header">
+                        <div class="vehicle-id">${vehicle.id}</div>
+                        <div class="vehicle-status ${vehicle.status}">${vehicle.status.replace('-', ' ')}</div>
+                    </div>
+                    <div class="vehicle-details">
+                        <div class="vehicle-detail-row">
+                            <span>Model:</span>
+                            <span>${vehicle.model}</span>
+                        </div>
+                        <div class="vehicle-detail-row">
+                            <span>Battery:</span>
+                            <span>${vehicle.battery}%</span>
+                        </div>
+                        <div class="vehicle-detail-row">
+                            <span>Speed:</span>
+                            <span>${vehicle.speed} mph</span>
+                        </div>
+                        <div class="vehicle-detail-row">
+                            <span>Passengers:</span>
+                            <span>${vehicle.passenger}</span>
+                        </div>
+                    </div>
+                `;
+
+                item.addEventListener('click', () => {
+                    this.selectVehicle(vehicle);
+                });
+
+                return item;
+            }
+
+            addVehicleMarkers() {
+                this.vehicles.forEach(vehicle => {
+                    const marker = this.createVehicleMarker(vehicle);
+                    this.markers[vehicle.id] = marker;
+                });
+            }
+
+            createVehicleMarker(vehicle) {
+                const icon = this.getVehicleIcon(vehicle.status);
+                const marker = L.marker([vehicle.location.lat, vehicle.location.lng], { icon })
+                    .addTo(this.map)
+                    .bindPopup(this.createPopupContent(vehicle))
+                    .on('click', () => {
+                        this.selectVehicle(vehicle);
+                    });
+
+                return marker;
+            }
+
+            getVehicleIcon(status) {
+                const colors = {
+                    'available': '#2ed573',
+                    'in-use': '#00e0ff',
+                    'charging': '#ffa502',
+                    'maintenance': '#ff4757'
+                };
+
+                return L.divIcon({
+                    className: 'custom-marker',
+                    html: `
+                        <div style="
+                            background: ${colors[status]};
+                            width: 20px;
+                            height: 20px;
+                            border-radius: 50%;
+                            border: 2px solid white;
+                            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+                        "></div>
+                    `,
+                    iconSize: [20, 20],
+                    iconAnchor: [10, 10]
+                });
+            }
+
+            createPopupContent(vehicle) {
+                return `
+                    <div style="color: #000; padding: 0.5rem;">
+                        <h4 style="margin: 0 0 0.5rem 0; color: #00e0ff;">${vehicle.id}</h4>
+                        <p style="margin: 0.2rem 0; font-size: 0.9rem;"><strong>Model:</strong> ${vehicle.model}</p>
+                        <p style="margin: 0.2rem 0; font-size: 0.9rem;"><strong>Status:</strong> ${vehicle.status.replace('-', ' ')}</p>
+                        <p style="margin: 0.2rem 0; font-size: 0.9rem;"><strong>Battery:</strong> ${vehicle.battery}%</p>
+                        <p style="margin: 0.2rem 0; font-size: 0.9rem;"><strong>Speed:</strong> ${vehicle.speed} mph</p>
+                    </div>
+                `;
+            }
+
+            selectVehicle(vehicle) {
+                // Remove previous selection
+                document.querySelectorAll('.vehicle-item').forEach(item => {
+                    item.classList.remove('selected');
+                });
+
+                // Select current vehicle
+                const vehicleItem = document.querySelector(`[data-vehicle-id="${vehicle.id}"]`);
+                if (vehicleItem) {
+                    vehicleItem.classList.add('selected');
+                }
+
+                // Center map on vehicle
+                this.map.setView([vehicle.location.lat, vehicle.location.lng], 12);
+
+                // Show vehicle info panel
+                this.showVehicleInfo(vehicle);
+
+                this.selectedVehicle = vehicle;
+            }
+
+            showVehicleInfo(vehicle) {
+                const panel = document.getElementById('vehicleInfoPanel');
+                const title = document.getElementById('infoTitle');
+                const grid = document.getElementById('infoGrid');
+
+                title.textContent = `${vehicle.id} - ${vehicle.model}`;
+
+                grid.innerHTML = `
+                    <div class="info-item">
+                        <div class="info-value">${vehicle.status.replace('-', ' ')}</div>
+                        <div class="info-label">Status</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-value">${vehicle.battery}%</div>
+                        <div class="info-label">Battery</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-value">${vehicle.speed} mph</div>
+                        <div class="info-label">Speed</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-value">${vehicle.passenger}</div>
+                        <div class="info-label">Passengers</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-value">${vehicle.mileage.toLocaleString()}</div>
+                        <div class="info-label">Mileage</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-value">${vehicle.eta} min</div>
+                        <div class="info-label">ETA</div>
+                    </div>
+                `;
+
+                panel.classList.add('show');
+            }
+
+            setupEventListeners() {
+                // Search functionality
+                const searchInput = document.getElementById('vehicleSearch');
+                searchInput.addEventListener('input', (e) => {
+                    this.filterVehicles(e.target.value);
+                });
+
+                // Filter buttons
+                document.querySelectorAll('.filter-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        // Update active state
+                        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                        e.target.classList.add('active');
+
+                        // Filter vehicles
+                        const status = e.target.dataset.status;
+                        this.filterByStatus(status);
+                    });
+                });
+            }
+
+            filterVehicles(searchTerm) {
+                const vehicles = document.querySelectorAll('.vehicle-item');
+                vehicles.forEach(vehicle => {
+                    const vehicleId = vehicle.dataset.vehicleId;
+                    const matches = vehicleId.toLowerCase().includes(searchTerm.toLowerCase());
+                    vehicle.style.display = matches ? 'block' : 'none';
+                });
+            }
+
+            filterByStatus(status) {
+                const vehicles = document.querySelectorAll('.vehicle-item');
+                vehicles.forEach(vehicle => {
+                    if (status === 'all') {
+                        vehicle.style.display = 'block';
+                    } else {
+                        const matches = vehicle.dataset.status === status;
+                        vehicle.style.display = matches ? 'block' : 'none';
+                    }
+                });
+
+                // Also hide/show markers on map
+                this.vehicles.forEach(vehicle => {
+                    const marker = this.markers[vehicle.id];
+                    if (status === 'all' || vehicle.status === status) {
+                        marker.addTo(this.map);
+                    } else {
+                        this.map.removeLayer(marker);
+                    }
+                });
+            }
+
+            startRealTimeUpdates() {
+                // Simulate real-time vehicle updates
+                setInterval(() => {
+                    this.updateVehiclePositions();
+                }, 5000);
+
+                // Update vehicle status occasionally
+                setInterval(() => {
+                    this.updateVehicleStatus();
+                }, 15000);
+            }
+
+            updateVehiclePositions() {
+                this.vehicles.forEach(vehicle => {
+                    if (vehicle.status === 'in-use') {
+                        // Move vehicle slightly
+                        vehicle.location.lat += (Math.random() - 0.5) * 0.001;
+                        vehicle.location.lng += (Math.random() - 0.5) * 0.001;
+
+                        // Update marker position
+                        const marker = this.markers[vehicle.id];
+                        marker.setLatLng([vehicle.location.lat, vehicle.location.lng]);
+
+                        // Update speed
+                        vehicle.speed = Math.floor(Math.random() * 60);
+
+                        // Update battery if moving
+                        if (Math.random() > 0.8) {
+                            vehicle.battery = Math.max(0, vehicle.battery - 1);
+                        }
+                    }
+                });
+
+                // Update selected vehicle info if any
+                if (this.selectedVehicle) {
+                    this.showVehicleInfo(this.selectedVehicle);
+                }
+            }
+
+            updateVehicleStatus() {
+                // Randomly change status of some vehicles
+                this.vehicles.forEach(vehicle => {
+                    if (Math.random() > 0.9) { // 10% chance
+                        const statuses = ['available', 'in-use', 'charging', 'maintenance'];
+                        const newStatus = statuses[Math.floor(Math.random() * statuses.length)];
+                        
+                        if (vehicle.status !== newStatus) {
+                            vehicle.status = newStatus;
+                            
+                            // Update marker icon
+                            const marker = this.markers[vehicle.id];
+                            marker.setIcon(this.getVehicleIcon(newStatus));
+                            
+                            // Update list item
+                            const listItem = document.querySelector(`[data-vehicle-id="${vehicle.id}"]`);
+                            if (listItem) {
+                                listItem.dataset.status = newStatus;
+                                listItem.querySelector('.vehicle-status').className = `vehicle-status ${newStatus}`;
+                                listItem.querySelector('.vehicle-status').textContent = newStatus.replace('-', ' ');
+                            }
+                        }
+                    }
+                });
+
+                this.renderVehicleList();
+            }
+
+            hideLoading() {
+                const loading = document.getElementById('loadingOverlay');
+                anime({
+                    targets: loading,
+                    opacity: [1, 0],
+                    duration: 500,
+                    easing: 'easeOutCubic',
+                    complete: () => {
+                        loading.style.display = 'none';
+                    }
+                });
+            }
+        }
+
+        // Global functions
+        function centerMap() {
+            if (window.vehicleTracker && window.vehicleTracker.selectedVehicle) {
+                const vehicle = window.vehicleTracker.selectedVehicle;
+                window.vehicleTracker.map.setView([vehicle.location.lat, vehicle.location.lng], 12);
+            } else {
+                window.vehicleTracker.map.setView([40.1164, -89.2734], 7);
+            }
+        }
+
+        function toggleTraffic() {
+            // Placeholder for traffic layer toggle
+            console.log('Traffic layer toggled');
+        }
+
+        function refreshVehicles() {
+            if (window.vehicleTracker) {
+                window.vehicleTracker.updateVehiclePositions();
+                window.vehicleTracker.updateVehicleStatus();
+            }
+        }
+
+        function closeVehicleInfo() {
+            document.getElementById('vehicleInfoPanel').classList.remove('show');
+        }
+
+        // Initialize tracking system
+        window.addEventListener('load', () => {
+            window.vehicleTracker = new VehicleTrackingSystem();
+        });
+    </script>
+</body>
+</html>
